@@ -1,0 +1,5 @@
+sudo apt install mpich
+
+mpicc arraysum.c -o sum
+
+mpirun -np 4 ./arraysum
