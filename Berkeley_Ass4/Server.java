@@ -4,39 +4,41 @@ import java.net.*;
 import java.time.LocalTime;
 
 public class Server{
-	public static void main(String[] args) throws Exception{
+	public static void main(String[] args)throws Exception{
 		ServerSocket server = new ServerSocket(5000);
-		System.out.println("Server is running on port: 5000");
-
-		String[] clientTime = new String[3];
-		Socket[] client = new Socket[3];
-
-		for(int i = 0; i < 3; i++){
+		System.out.println("Server is running on port 5000");
+		int n = 4;
+		String[] clientTime = new String[n];
+		Socket[] client = new Socket[n];
+		int[] clientSecond = new int[n];
+		
+		LocalTime serverTime = LocalTime.now().withNano(0);
+		System.out.println(" - Server time: "+serverTime);
+		
+		int serverSecond = serverTime.toSecondOfDay(); 
+		
+		for(int i=0; i<n; i++){
 			client[i] = server.accept();
 			DataInputStream input = new DataInputStream(client[i].getInputStream());
 			clientTime[i] = input.readUTF();
-			System.out.println(" - Client " + (i + 1) + " Connected\n -- Before Synchronization: " + clientTime[i]);
+			System.out.println("Client ("+(i+1)+") connected with time: "+clientTime[i]);
+			clientSecond[i] = LocalTime.parse(clientTime[i]).toSecondOfDay();
 		}
-
-		int totalSeconds = 0;
-		for(int i = 0; i < 3; i++){
-			LocalTime timeObj = LocalTime.parse(clientTime[i]);
-			int seconds = timeObj.getHour() * 3600 + timeObj.getMinute() * 60 + timeObj.getSecond();
-			totalSeconds += seconds;
+		
+		int totalSeconds = serverSecond;
+		for(int i=0; i<n; i++){
+			totalSeconds += clientSecond[i];
 		}
-
-		int avgSeconds = totalSeconds / 3;
-		int avgHour = avgSeconds / 3600;
-		int avgMin = (avgSeconds % 3600) / 60;
-		int avgSec = avgSeconds % 60;
-
-		String syncTime = String.format("%02d:%02d:%02d", avgHour, avgMin, avgSec);
-		System.out.println(" + Synchronized time sent to all Clients: " + syncTime);
-
-		for(int i = 0; i < 3; i++){
+		
+		int avgSeconds = totalSeconds / (n+1);
+		for(int i=0; i<n; i++){
+			int offset = avgSeconds - clientSecond[i];
 			DataOutputStream output = new DataOutputStream(client[i].getOutputStream());
-			output.writeUTF(syncTime);
+			output.writeInt(offset);
 		}
-		server.close();
+		
+		int serverOffset = avgSeconds - serverSecond;
+		LocalTime newServerTime = LocalTime.ofSecondOfDay(serverSecond + serverOffset);
+		System.out.println(" + Server Synchronized time "+newServerTime+" by offset: "+serverOffset);
 	}
 }
