@@ -4,22 +4,20 @@ import java.time.LocalTime;
 import java.net.*;
 
 public class Client{
-	public static void main(String[] args) throws Exception{
-		Socket socket = new Socket("localhost",5000);
-
-		LocalTime currTime = LocalTime.now();
-		String time = String.format("%02d:%02d:%02d", currTime.getHour(), currTime.getMinute(), currTime.getSecond());
-
-		System.out.println(" - Before Synchronization: " + time);
-
-		DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+	public static void main(String[] args)throws Exception{
+		Socket client = new Socket("localhost", 5000);
+		
+		LocalTime currTime = LocalTime.now().withNano(0);
+		System.out.println(" - Before Synchronization: "+currTime);
+		
+		String time = currTime.toString();
+		DataOutputStream output = new DataOutputStream(client.getOutputStream());
 		output.writeUTF(time);
-
-		DataInputStream input = new DataInputStream(socket.getInputStream());
-		String syncTime = input.readUTF();
-
-		System.out.println(" + After Synchronization: " + syncTime);
-
-		socket.close();
+		
+		DataInputStream input = new DataInputStream(client.getInputStream());
+		int offset = input.readInt();
+		
+		LocalTime syncTime = currTime.plusSeconds(offset);
+		System.out.println("   After Synchronization by offset ("+(offset)+"): "+syncTime);
 	}
 }
